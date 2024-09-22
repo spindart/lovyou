@@ -1,0 +1,284 @@
+'use client'
+
+import { useEffect, useState, useRef } from 'react';
+import { useParams } from 'next/navigation';
+import { getFirestore, doc, getDoc, DocumentData } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { HeartAnimation } from '../components/HeartAnimation';
+import { Music, Share2, Play, Pause } from 'lucide-react';
+import { translations, Lang } from '@/lib/translations';
+import Seo from '@/components/Seo';
+import Image from 'next/image';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBhYEhjV23ZH4lja616E0vH2bbEu35xw8E",
+  authDomain: "lovyou-4e224.firebaseapp.com",
+  projectId: "lovyou-4e224",
+  storageBucket: "lovyou-4e224.appspot.com",
+  messagingSenderId: "848884983824",
+  appId: "1:848884983824:web:c2fe2ba268d3f818f24295",
+  measurementId: "G-2XXYHREDY4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+interface SiteData extends DocumentData {
+  coupleNames: string;
+  startDate: string;
+  startTime: string;
+  message: string;
+  imageUrls: string[];
+  youtubeUrl?: string;
+  lang: Lang;
+}
+
+export default function CouplePage() {
+  const params = useParams();
+  const customUrl = typeof params?.customUrl === 'string' ? params.customUrl : '';
+  const [siteData, setSiteData] = useState<SiteData | null>(null);
+  const [timeTogether, setTimeTogether] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [dataNotFound, setDataNotFound] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const youtubePlayerRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    async function fetchSiteData() {
+      if (customUrl) {
+        const docRef = doc(db, 'sites', customUrl);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setSiteData(docSnap.data() as SiteData);
+        } else {
+          console.log('No such document!');
+          setDataNotFound(true);
+        }
+      }
+    }
+
+    fetchSiteData();
+  }, [customUrl]);
+
+  useEffect(() => {
+    if (siteData) {
+      const interval = setInterval(() => {
+        const start = new Date(`${siteData.startDate}T${siteData.startTime}:00`);
+        const now = new Date();
+        const diff = now.getTime() - start.getTime();
+
+        const years = Math.floor(diff / (1000 * 60 * 60 * 24 * 365));
+        const months = Math.floor((diff % (1000 * 60 * 60 * 24 * 365)) / (1000 * 60 * 60 * 24 * 30));
+        const days = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const t = translations[siteData.lang];
+        const parts = siteData.lang === 'pt' ? [
+          years > 0 ? `${years} ${years === 1 ? 'ano' : 'anos'}` : '',
+          months > 0 ? `${months} ${months === 1 ? 'mês' : 'meses'}` : '',
+          days > 0 ? `${days} ${days === 1 ? 'dia' : 'dias'}` : '',
+          hours > 0 ? `${hours} ${hours === 1 ? 'hora' : 'horas'}` : '',
+          minutes > 0 ? `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}` : '',
+          `${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`
+        ] : [
+          years > 0 ? `${years} ${years === 1 ? 'year' : 'years'}` : '',
+          months > 0 ? `${months} ${months === 1 ? 'month' : 'months'}` : '',
+          days > 0 ? `${days} ${days === 1 ? 'day' : 'days'}` : '',
+          hours > 0 ? `${hours} ${hours === 1 ? 'hour' : 'hours'}` : '',
+          minutes > 0 ? `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}` : '',
+          `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`
+        ];
+
+        setTimeTogether(`${t.together} ${parts.filter(Boolean).join(', ')}`);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [siteData]);
+
+  useEffect(() => {
+    if (siteData) {
+      const imageInterval = setInterval(() => {
+        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % siteData.imageUrls.length);
+      }, 5000);
+
+      return () => clearInterval(imageInterval);
+    }
+  }, [siteData]);
+
+  useEffect(() => {
+    if (siteData?.youtubeUrl) {
+      const videoId = extractYoutubeVideoId(siteData.youtubeUrl);
+      setYoutubeVideoId(videoId);
+    }
+  }, [siteData?.youtubeUrl]);
+
+  useEffect(() => {
+    if (youtubeVideoId && youtubePlayerRef.current) {
+      const player = youtubePlayerRef.current;
+      player.src = `https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&controls=0&disablekb=1&fs=0&modestbranding=1&loop=1&playlist=${youtubeVideoId}`;
+      player.addEventListener('load', () => {
+        setIsPlaying(true);
+      });
+    }
+  }, [youtubeVideoId]);
+
+  const toggleAudio = () => {
+    if (youtubePlayerRef.current) {
+      const player = youtubePlayerRef.current;
+      if (isPlaying) {
+        player.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      } else {
+        player.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const shareUrl = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${siteData?.coupleNames} - Love Counter`,
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        alert(siteData?.lang === 'pt' ? 'Link copiado para a área de transferência!' : 'Link copied to clipboard!');
+      }, (err) => {
+        console.error('Erro ao copiar: ', err);
+      });
+    }
+  };
+
+  const capitalizeNames = (names: string) => {
+    return names.split(' ')
+      .map(name => {
+        if (name.toLowerCase() === 'e' || name.toLowerCase() === 'and') return name.toLowerCase();
+        return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+      })
+      .join(' ')
+  };
+
+  if (dataNotFound) {
+    return (
+      <>
+        <Seo 
+          title="Page Not Found | LovYou"
+          description="The couple page you are looking for does not exist or has been removed."
+        />
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-xl">
+            <h1 className="text-2xl font-bold text-pink-600 mb-4">
+              {siteData?.lang === 'pt' ? 'Oops! Página não encontrada' : 'Oops! Page not found'}
+            </h1>
+            <p className="text-gray-600">
+              {siteData?.lang === 'pt' 
+                ? 'A página do casal que você está procurando não existe ou foi removida.'
+                : 'The couple page you are looking for does not exist or has been removed.'}
+            </p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!siteData) {
+    return (
+      <>
+        <Seo 
+          title="Loading Love Counter | LovYou"
+          description="Your personalized love counter is loading..."
+        />
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center">
+          <div className="text-2xl font-bold text-pink-600">
+            {translations['en'].loading}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  const t = translations[siteData.lang];
+
+  return (
+    <>
+      <Seo 
+        title={`${siteData.coupleNames} - Love Counter | LovYou`}
+        description={`${siteData.coupleNames} have been together since ${siteData.startDate}. ${siteData.message}`}
+        image={siteData.imageUrls[0]}
+        coupleNames={siteData.coupleNames}
+        startDate={siteData.startDate}
+        path={`/${customUrl}`}
+      />
+      <div className="min-h-screen w-full bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl bg-white rounded-xl overflow-hidden">
+          <div className="relative" style={{ paddingBottom: '75%' }}>
+            {siteData.imageUrls.length > 0 && (
+              <Image
+                src={siteData.imageUrls[currentImageIndex]}
+                alt={`${siteData.coupleNames} together`}
+                layout="fill"
+                objectFit="contain"
+                priority
+              />
+            )}
+            <div className="absolute inset-0">
+              <HeartAnimation />
+            </div>
+            <button 
+              onClick={shareUrl}
+              className="absolute top-4 right-4 bg-white/30 hover:bg-white/50 text-white p-2 rounded-full transition-colors duration-200"
+              aria-label={siteData.lang === 'pt' ? 'Compartilhar' : 'Share'}
+            >
+              <Share2 size={24} />
+            </button>
+          </div>
+          <div className="p-6 bg-white">
+            <h1 className="text-3xl sm:text-4xl font-bold text-pink-600 mb-2">
+              {capitalizeNames(siteData.coupleNames)}
+            </h1>
+            <p className="text-xl sm:text-2xl font-light text-gray-700 mb-4">
+              {timeTogether}
+            </p>
+            <p className="text-lg italic text-gray-700 mb-6">"{siteData.message}"</p>
+            {youtubeVideoId && (
+              <div className="mt-4 flex items-center justify-between bg-pink-100 p-3 rounded-lg">
+                <div className="flex items-center">
+                  <Music className="w-6 h-6 mr-2 text-pink-500" />
+                  <span className="text-pink-700 font-medium">
+                    {siteData.lang === 'pt' ? 'Nossa música' : 'Our song'}
+                  </span>
+                </div>
+                <button
+                  onClick={toggleAudio}
+                  className="bg-pink-500 hover:bg-pink-600 text-white rounded-full p-2 transition-colors duration-200"
+                >
+                  {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {youtubeVideoId && (
+        <iframe
+          ref={youtubePlayerRef}
+          style={{ display: 'none' }}
+          title="YouTube video player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      )}
+    </>
+  );
+}
+
+function extractYoutubeVideoId(url: string): string | null {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
