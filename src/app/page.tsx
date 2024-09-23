@@ -157,7 +157,7 @@ function Preview({ coupleNames, startDate, startTime, message, imageUrls, youtub
           </div>
         </div>
       </div>
-      <div className="relative flex-grow overflow-hidden bg-gradient-to-br from-pink-200/30 via-purple-30/20 to-blue-200/10">
+      <div className="relative flex-grow overflow-hidden bg-gradient-to-br from-pink-200/30 via-purple-300/20 to-blue-200/10">
         {imageUrls.length > 0 ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <img
@@ -287,34 +287,24 @@ export default function Component() {
       />
       <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 p-4 flex flex-col">
         <div className="container mx-auto max-w-7xl flex-grow flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <div className="w-24"> {/* Espaço vazio à esquerda para balancear o layout */}
-            </div>
-            <div className="flex items-center space-x-1">
-              <span className="text-2xl font-bold text-pink-600">Lov</span>
-              <div className="bg-pink-600 rounded-full p-1">
-                <Heart className="text-white" size={16} />
-              </div>
-              <span className="text-2xl font-bold text-pink-600">you</span>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant={lang === 'en' ? "default" : "outline"}
-                size="sm"
-                onClick={() => setLang('en')}
-                className={lang === 'en' ? "bg-pink-600 text-white" : "text-pink-600 border-pink-600"}
-              >
-                🇺🇸 English
-              </Button>
-              <Button
-                variant={lang === 'pt' ? "default" : "outline"}
-                size="sm"
-                onClick={() => setLang('pt')}
-                className={lang === 'pt' ? "bg-pink-600 text-white" : "text-pink-600 border-pink-600"}
-              >
-                🇧🇷 Português
-              </Button>
-            </div>
+          <div className="flex justify-end mb-4 space-x-2">
+            <Button
+              variant={lang === 'en' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setLang('en')}
+              className={lang === 'en' ? "bg-pink-600 text-white" : "text-pink-600 border-pink-600"}
+            >
+              🇺🇸 English
+            </Button>
+            <Button
+              variant={lang === 'pt' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setLang('pt')}
+              className={lang === 'pt' ? "bg-pink-600 text-white" : "text-pink-600 border-pink-600"}
+            >
+              🇧🇷 Português
+            </Button>
+
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-center mb-6 text-pink-700">{t.title}</h1>
           <p className="text-center mb-8 text-gray-800">{t.subtitle}</p>
