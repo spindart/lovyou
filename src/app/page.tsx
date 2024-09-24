@@ -12,6 +12,7 @@ import { useDropzone } from 'react-dropzone'
 import CoupleForm from './components/CoupleForm'
 import { translations, Lang } from '@/lib/translations'
 import Seo from '@/components/Seo';
+import { stripePromise } from '@/lib/stripe'
 
 interface PreviewProps {
   coupleNames: string
@@ -250,13 +251,23 @@ export default function Component() {
   }
 
   const handleCreateSite = async () => {
+    const stripe = await stripePromise;
+    if (!stripe) {
+      console.error('Falha ao carregar Stripe');
+      return;
+    }
+
     const siteData = {
-      ...formData,
+      plan: formData.plan,
       lang,
+      coupleNames: formData.coupleNames,
+      startDate: formData.startDate,
+      startTime: formData.startTime,
+      message: formData.message,
     };
 
     try {
-      const response = await fetch('/api/create-site', {
+      const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -264,18 +275,21 @@ export default function Component() {
         body: JSON.stringify(siteData),
       });
 
-      if (response.ok) {
-        const { url } = await response.json();
-        // Redirecione o usuário para o novo site
-        window.location.href = url;
-      } else {
-        // Trate o erro
-        console.error('Falha ao criar o site');
-        // Adicione uma notificação de erro para o usuário aqui
+      if (!response.ok) {
+        throw new Error('Falha ao criar sessão de checkout');
+      }
+
+      const { sessionId } = await response.json();
+
+      const result = await stripe.redirectToCheckout({
+        sessionId: sessionId,
+      });
+
+      if (result.error) {
+        console.error(result.error.message);
       }
     } catch (error) {
-      console.error('Erro ao criar o site:', error);
-      // Adicione uma notificação de erro para o usuário aqui
+      console.error('Erro ao processar o pagamento:', error);
     }
   };
 
