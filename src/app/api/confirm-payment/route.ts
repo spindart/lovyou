@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import nodemailer from 'nodemailer';
 
 const stripeSecretKey = process.env.NODE_ENV === 'production'
   ? process.env.STRIPE_SECRET_KEY
@@ -16,46 +17,40 @@ const firebaseConfig = {
   // Suas configurações do Firebase aqui
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Inicialize o Firebase Admin se ainda não estiver inicializado
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const sessionId = searchParams.get('session_id');
+const db = getFirestore();
 
-  if (!sessionId) {
-    return NextResponse.json({ error: 'Session ID não fornecido' }, { status: 400 });
-  }
+export async function POST(req: Request) {
+  const body = await req.text();
+  const sig = req.headers.get('stripe-signature') as string;
+
+  let event: Stripe.Event;
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
-    if (session.payment_status === 'paid') {
-      const siteData = session.metadata;
-      if (siteData && siteData.coupleNames && siteData.uniqueHash) {
-        const siteUrl = `https://lovyou.xyz/${siteData.coupleNames.toLowerCase().replace(' ', '-')}`;
-        
-        // Salvar no Firebase
-        await setDoc(doc(db, "couples", siteData.uniqueHash), {
-          coupleNames: siteData.coupleNames,
-          startDate: siteData.startDate,
-          startTime: siteData.startTime,
-          message: siteData.message,
-          lang: siteData.lang,
-          plan: siteData.plan,
-          siteUrl: siteUrl,
-          createdAt: new Date().toISOString()
-        });
-
-        return NextResponse.json({ url: siteUrl });
-      } else {
-        return NextResponse.json({ error: 'Dados do site não encontrados' }, { status: 400 });
-      }
-    } else {
-      return NextResponse.json({ error: 'Pagamento não confirmado' }, { status: 400 });
-    }
-  } catch (error) {
-    console.error('Erro ao confirmar pagamento:', error);
-    return NextResponse.json({ error: 'Erro ao processar pagamento' }, { status: 500 });
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+  } catch (err: any) {
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
   }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    // Aqui você pode adicionar lógica para processar o pagamento bem-sucedido
+    // Por exemplo, atualizar o status do usuário no banco de dados
+
+    // Redirecionar para a página de sucesso
+    return NextResponse.json({ success: true, redirectUrl: '/success' });
+  }
+
+  return NextResponse.json({ received: true });
 }

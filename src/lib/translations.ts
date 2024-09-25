@@ -22,7 +22,12 @@ export const translations = {
     yourLoveMessage: "Write your lovely message here. Make it special! ❤️",
     defaultCustomUrl: "alice-and-bob",
     placeholderCoupleNames: "Alice and Bob",
-    loading: "Loading..."
+    loading: "Loading...",
+    unlockYourPage: "Unlock Your Page",
+    enterUnlockHash: "Enter the unlock hash you received in your email after purchase.",
+    unlockHashPlaceholder: "Enter unlock hash",
+    unlock: "Unlock",
+    invalidHash: "Invalid hash!",
   },
   pt: {
     title: "Surpreenda seu amor",
@@ -47,7 +52,12 @@ export const translations = {
     yourLoveMessage: "Escreva aqui a sua mensagem de amor. Torna-a especial! ❤️",
     defaultCustomUrl: "ricardo-e-patricia",
     placeholderCoupleNames: "Ricardo e Patricia",
-    loading: "Carregando..."
+    loading: "Carregando...",
+    unlockYourPage: "Desbloqueie Sua Página",
+    enterUnlockHash: "Digite o hash de desbloqueio que você recebeu no seu e-mail após a compra.",
+    unlockHashPlaceholder: "Digite o hash de desbloqueio",
+    unlock: "Desbloquear",
+    invalidHash: "Hash inválido!",
   }
 } as const;
 

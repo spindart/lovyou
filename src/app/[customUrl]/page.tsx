@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { getFirestore, doc, getDoc, DocumentData } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { HeartAnimation } from '../components/HeartAnimation';
 import { Music, Share2, Play, Pause } from 'lucide-react';
@@ -31,11 +30,11 @@ interface SiteData extends DocumentData {
   imageUrls: string[];
   youtubeUrl?: string;
   lang: Lang;
+  isUnlocked: boolean;
+  uniqueHash: string;
 }
 
-export default function CouplePage() {
-  const params = useParams();
-  const customUrl = typeof params?.customUrl === 'string' ? params.customUrl : '';
+export default function CouplePage({ params }: { params: { customUrl: string } }) {
   const [siteData, setSiteData] = useState<SiteData | null>(null);
   const [timeTogether, setTimeTogether] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -43,15 +42,19 @@ export default function CouplePage() {
   const [dataNotFound, setDataNotFound] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const youtubePlayerRef = useRef<HTMLIFrameElement>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [unlockHash, setUnlockHash] = useState('');
 
   useEffect(() => {
     async function fetchSiteData() {
-      if (customUrl) {
-        const docRef = doc(db, 'sites', customUrl);
+      if (params.customUrl) {
+        const docRef = doc(db, 'sites', params.customUrl);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          setSiteData(docSnap.data() as SiteData);
+          const data = docSnap.data() as SiteData;
+          setSiteData(data);
+          setIsUnlocked(data.isUnlocked || false);
         } else {
           console.log('No such document!');
           setDataNotFound(true);
@@ -60,7 +63,7 @@ export default function CouplePage() {
     }
 
     fetchSiteData();
-  }, [customUrl]);
+  }, [params.customUrl]);
 
   useEffect(() => {
     if (siteData) {
@@ -76,7 +79,7 @@ export default function CouplePage() {
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        const t = translations[siteData.lang];
+        const t = translations[siteData.lang] || translations['en']; // Fallback para inglês se a tradução não existir
         const parts = siteData.lang === 'pt' ? [
           years > 0 ? `${years} ${years === 1 ? 'ano' : 'anos'}` : '',
           months > 0 ? `${months} ${months === 1 ? 'mês' : 'meses'}` : '',
@@ -93,7 +96,8 @@ export default function CouplePage() {
           `${seconds} ${seconds === 1 ? 'second' : 'seconds'}`
         ];
 
-        setTimeTogether(`${t.together} ${parts.filter(Boolean).join(', ')}`);
+        const togetherText = t.together || 'Together for'; // Fallback se 'together' não existir
+        setTimeTogether(`${togetherText} ${parts.filter(Boolean).join(', ')}`);
       }, 1000);
 
       return () => clearInterval(interval);
@@ -163,6 +167,22 @@ export default function CouplePage() {
       .join(' ')
   };
 
+  const handleUnlock = async () => {
+    console.log('Entered hash:', unlockHash);
+    console.log('Stored hash:', siteData?.uniqueHash);
+    if (siteData && unlockHash === siteData.uniqueHash) {
+      console.log('Hash matched');
+      const docRef = doc(db, 'sites', params.customUrl);
+      await updateDoc(docRef, { isUnlocked: true });
+      setIsUnlocked(true);
+    } else {
+      console.log('Hash mismatch');
+      alert(t.invalidHash);
+    }
+  };
+
+  const t = translations[siteData?.lang || 'en'];
+
   if (dataNotFound) {
     return (
       <>
@@ -202,17 +222,52 @@ export default function CouplePage() {
     );
   }
 
-  const t = translations[siteData.lang];
+  if (!isUnlocked) {
+    return (
+      <>
+        <Seo 
+          title={`${siteData.coupleNames} - Love Counter | LovYou`}
+          description="Unlock your personalized love counter"
+        />
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-xl max-w-md w-full">
+            <h1 className="text-2xl font-bold text-pink-600 mb-4">
+              {t.unlockYourPage}
+            </h1>
+            <p className="text-gray-600 mb-4">
+              {t.enterUnlockHash}
+            </p>
+            <input
+              type="text"
+              value={unlockHash}
+              onChange={(e) => setUnlockHash(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+              placeholder={t.unlockHashPlaceholder}
+            />
+            <button
+              onClick={handleUnlock}
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded"
+            >
+              {t.unlock}
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Adicione esta verificação
+  const imageUrls = siteData.imageUrls || [];
 
   return (
     <>
       <Seo 
         title={`${siteData.coupleNames} - Love Counter | LovYou`}
         description={`${siteData.coupleNames} have been together since ${siteData.startDate}. ${siteData.message}`}
-        image={siteData.imageUrls[0]}
+        image={imageUrls[0]} // Use a variável verificada aqui
         coupleNames={siteData.coupleNames}
         startDate={siteData.startDate}
-        path={`/${customUrl}`}
+        path={`/${params.customUrl}`}
       />
       <div className="min-h-screen w-full bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl bg-white rounded-xl overflow-hidden">
@@ -224,6 +279,7 @@ export default function CouplePage() {
                 layout="fill"
                 objectFit="contain"
                 priority
+                unoptimized // Adicione esta prop para evitar otimização do Next.js
               />
             )}
             <div className="absolute inset-0">

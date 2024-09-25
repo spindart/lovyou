@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
-import { v4 as uuidv4 } from 'uuid';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getStorage } from 'firebase-admin/storage';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
-// Inicialize o Firebase Admin SDK
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
+// Inicialize o Firebase Admin se ainda não estiver inicializado
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -14,86 +15,83 @@ if (!admin.apps.length) {
   });
 }
 
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
+const db = getFirestore();
+const storage = getStorage();
 
-function validateData(data: any) {
-  if (!data.coupleNames || !data.startDate || !data.message) {
-    throw new Error('Dados inválidos');
-  }
-}
-
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const data = await request.json();
-    validateData(data);
-    
-    // Gere uma URL personalizada baseada no nome do casal
-    const customUrl = generateCustomUrl(data.coupleNames);
-    
-    // Upload das imagens para o Firebase Storage
-    const imageUrls = await uploadImages(customUrl, data.imageUrls);
-    
-    // Prepare os dados para salvar
-    const siteData = {
-      ...data,
+    const { coupleNames, startDate, startTime, message, lang, plan, email, images } = await req.json();
+
+    // Gerar um slug único para o site
+    const slug = await generateUniqueSlug(coupleNames);
+
+    // Processar e salvar as imagens
+    const imageUrls = await Promise.all(images.map(async (imageDataUrl: string, index: number) => {
+      const buffer = Buffer.from(imageDataUrl.split(',')[1], 'base64');
+      const imagePath = `sites/${slug}/image-${index + 1}.jpg`;
+      const file = storage.bucket().file(imagePath);
+      
+      await file.save(buffer, {
+        metadata: {
+          contentType: 'image/jpeg',
+        },
+      });
+
+      // Gerar URL assinada com longa expiração
+      const [signedUrl] = await file.getSignedUrl({
+        action: 'read',
+        expires: '3000-01-01', // Data de expiração bem no futuro
+      });
+
+      return signedUrl;
+    }));
+
+    // Criar o documento do site no Firestore
+    const siteDoc = {
+      coupleNames,
+      startDate,
+      startTime,
+      message,
+      lang,
+      plan,
+      email,
       imageUrls,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      isUnlocked: false,
+      uniqueHash: generateUniqueHash(),
+      createdAt: new Date(),
     };
-    
-    // Salve os dados no Firestore
-    await saveSiteData(customUrl, siteData);
-    
-    // Retorne o URL do novo site
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    return NextResponse.json({ url: `${baseUrl}/${customUrl}` });
+
+    await db.collection('sites').doc(slug).set(siteDoc);
+
+    return NextResponse.json({ 
+      success: true, 
+      siteUrl: `https://lovyou.xyz/${slug}`,
+      uniqueHash: siteDoc.uniqueHash
+    });
   } catch (error) {
-    console.error('Erro ao criar o site:', error);
-    return NextResponse.json({ error: 'Falha ao criar o site' }, { status: 500 });
+    console.error('Erro ao criar site:', error);
+    return NextResponse.json({ error: 'Falha ao criar site' }, { status: 500 });
   }
 }
 
-function generateCustomUrl(coupleNames: string): string {
-  return coupleNames
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
+async function generateUniqueSlug(coupleNames: string): Promise<string> {
+  let baseSlug = coupleNames.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  let slug = baseSlug;
+  let counter = 1;
 
-async function uploadImages(customUrl: string, imageUrls: string[]): Promise<string[]> {
-  const uploadedUrls = [];
-  
-  for (let i = 0; i < imageUrls.length; i++) {
-    const imageData = imageUrls[i].replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(imageData, 'base64');
-    const filename = `${customUrl}/image-${i + 1}.jpg`;
-    
-    const file = bucket.file(filename);
-    await file.save(buffer, {
-      metadata: {
-        contentType: 'image/jpeg',
-      },
-    });
-    
-    const [url] = await file.getSignedUrl({
-      action: 'read',
-      expires: '03-01-2500', // Define uma data de expiração distante
-    });
-    
-    uploadedUrls.push(url);
+  while (true) {
+    const docRef = db.collection('sites').doc(slug);
+    const doc = await docRef.get();
+
+    if (!doc.exists) {
+      return slug;
+    }
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
   }
-  
-  return uploadedUrls;
 }
 
-async function saveSiteData(customUrl: string, data: any) {
-  await db.collection('sites').doc(customUrl).set(data);
-}
-
-function extractYoutubeVideoId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+function generateUniqueHash(): string {
+  return Math.random().toString(36).substring(2, 15);
 }

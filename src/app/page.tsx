@@ -119,14 +119,8 @@ function Preview({ coupleNames, startDate, startTime, message, imageUrls, youtub
   }
 
   const getCustomUrl = (names: string) => {
-    if (!names) return t.defaultCustomUrl
-    return names.toLowerCase()
-      .split(' ')
-      .map(name => {
-        if (name === 'e' || name === 'and') return name;
-        return name;
-      })
-      .join('-')
+    if (!names) return t.defaultCustomUrl;
+    return encodeURIComponent(names.toLowerCase().replace(/\s+/g, '-'));
   }
 
   const toggleAudio = () => {
@@ -228,7 +222,8 @@ export default function Component() {
     message: '',
     plan: 'basic',
     imageUrls: [] as string[],
-    youtubeUrl: ''
+    youtubeUrl: '',
+    email: ''
   })
 
   const handleFormChange = (changes: Partial<typeof formData>) => {
@@ -251,46 +246,65 @@ export default function Component() {
   }
 
   const handleCreateSite = async () => {
-    const stripe = await stripePromise;
-    if (!stripe) {
-      console.error('Falha ao carregar Stripe');
-      return;
-    }
-
-    const siteData = {
-      plan: formData.plan,
-      lang,
-      coupleNames: formData.coupleNames,
-      startDate: formData.startDate,
-      startTime: formData.startTime,
-      message: formData.message,
-    };
-
     try {
+      console.log('Iniciando criação do site...');
+      console.log('Plano selecionado:', formData.plan);
+      console.log('Idioma:', lang);
+
+      const priceId = getPriceId(formData.plan, lang);
+      console.log('PriceId:', priceId);
+
+      if (!priceId) {
+        throw new Error('PriceId não encontrado');
+      }
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(siteData),
+        body: JSON.stringify({ priceId }),
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao criar sessão de checkout');
+        const errorData = await response.json();
+        console.error('Erro na resposta:', errorData);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const { sessionId } = await response.json();
+      console.log('SessionId recebido:', sessionId);
 
-      const result = await stripe.redirectToCheckout({
-        sessionId: sessionId,
-      });
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe não inicializado');
+      }
 
-      if (result.error) {
-        console.error(result.error.message);
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+
+      if (error) {
+        console.error('Erro ao redirecionar para o checkout:', error);
+        throw error;
       }
     } catch (error) {
-      console.error('Erro ao processar o pagamento:', error);
+      console.error('Erro ao criar sessão de checkout:', error);
+      // Aqui você pode adicionar uma lógica para mostrar uma mensagem de erro para o usuário
     }
+  };
+
+  const getPriceId = (plan: string, lang: Lang) => {
+    const priceMap: Record<string, Record<Lang, string>> = {
+      basic: {
+        en: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID_EN || '',
+        pt: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID_PT || '',
+      },
+      premium: {
+        en: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID_EN || '',
+        pt: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID_PT || '',
+      },
+    };
+
+    return priceMap[plan][lang];
   };
 
   return (
