@@ -26,29 +26,28 @@ export async function POST(req: Request) {
     const siteData = await req.json();
     console.log('Dados recebidos:', siteData);
     
+    if (!siteData.coupleNames) {
+      return NextResponse.json({ error: 'Nome do casal não fornecido' }, { status: 400 });
+    }
+
     const customUrl = generateCustomUrl(siteData.coupleNames);
     console.log('Custom URL gerada:', customUrl);
-    
-    const existingSite = await db.collection('sites').where('customUrl', '==', customUrl).get();
-    if (!existingSite.empty) {
-      console.log('URL personalizada já existe');
-      return NextResponse.json({ error: 'URL personalizada já existe' }, { status: 400 });
-    }
     
     // Gerar uniqueHash
     const uniqueHash = crypto.randomBytes(16).toString('hex');
     
-    // Adicionar o documento ao Firestore
-    const docRef = await db.collection('sites').add({
+    // Adicionar o documento ao Firestore usando o customUrl como ID do documento
+    const docRef = db.collection('sites').doc(customUrl);
+    await docRef.set({
       ...siteData,
       customUrl,
       uniqueHash,
       createdAt: new Date(),
       paid: false
     });
-    console.log('Site criado com sucesso. ID:', docRef.id);
+    console.log('Site criado com sucesso. ID:', customUrl);
 
-    return NextResponse.json({ siteId: docRef.id, customUrl, uniqueHash });
+    return NextResponse.json({ siteId: customUrl, customUrl, uniqueHash });
   } catch (error) {
     console.error('Erro ao criar site:', error);
     return NextResponse.json({ error: 'Erro ao criar site' }, { status: 500 });
@@ -58,6 +57,7 @@ export async function POST(req: Request) {
 function generateCustomUrl(coupleNames: string): string {
   return coupleNames
     .toLowerCase()
+    .trim()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
     .slice(0, 50); // Limitar o tamanho da URL

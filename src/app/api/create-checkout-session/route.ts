@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     });
 
     // Atualizar o documento do site no Firestore com o e-mail
-    await db.collection('sites').doc(siteId).update({
+    await db.collection('sites').doc(customUrl).update({
       email: email
     });
 
