@@ -248,9 +248,36 @@ export default function Component() {
   const handleCreateSite = async () => {
     try {
       console.log('Iniciando criação do site...');
-      console.log('Plano selecionado:', formData.plan);
-      console.log('Idioma:', lang);
+      console.log('Dados do formulário:', formData);
 
+      const siteResponse = await fetch('/api/create-site', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          coupleNames: formData.coupleNames,
+          startDate: formData.startDate,
+          startTime: formData.startTime,
+          message: formData.message,
+          imageUrls: formData.imageUrls,
+          youtubeUrl: formData.youtubeUrl,
+          email: formData.email,
+          plan: formData.plan,
+          language: lang
+        }),
+      });
+
+      if (!siteResponse.ok) {
+        const errorData = await siteResponse.json();
+        console.error('Erro ao criar o site:', errorData);
+        throw new Error(`Erro ao criar o site: ${JSON.stringify(errorData)}`);
+      }
+
+      const { siteId, customUrl } = await siteResponse.json();
+      console.log('Site criado com sucesso. ID:', siteId, 'URL:', customUrl);
+
+      // Agora, vamos criar a sessão de checkout
       const priceId = getPriceId(formData.plan, lang);
       console.log('PriceId:', priceId);
 
@@ -258,21 +285,21 @@ export default function Component() {
         throw new Error('PriceId não encontrado');
       }
 
-      const response = await fetch('/api/create-checkout-session', {
+      const checkoutResponse = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ priceId }),
+        body: JSON.stringify({ priceId, siteId, customUrl, email: formData.email }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Erro na resposta:', errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!checkoutResponse.ok) {
+        const errorData = await checkoutResponse.json();
+        console.error('Erro na resposta do checkout:', errorData);
+        throw new Error(`HTTP error! status: ${checkoutResponse.status}`);
       }
 
-      const { sessionId } = await response.json();
+      const { sessionId } = await checkoutResponse.json();
       console.log('SessionId recebido:', sessionId);
 
       const stripe = await stripePromise;
@@ -287,7 +314,7 @@ export default function Component() {
         throw error;
       }
     } catch (error) {
-      console.error('Erro ao criar sessão de checkout:', error);
+      console.error('Erro detalhado:', error);
       // Aqui você pode adicionar uma lógica para mostrar uma mensagem de erro para o usuário
     }
   };

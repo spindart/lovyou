@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react';
-import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, DocumentData } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
 import { HeartAnimation } from '../components/HeartAnimation';
 import { Music, Share2, Play, Pause } from 'lucide-react';
@@ -186,7 +186,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   if (dataNotFound) {
     return (
       <>
-        <Seo 
+        <Seo
           title="Page Not Found | LovYou"
           description="The couple page you are looking for does not exist or has been removed."
         />
@@ -196,7 +196,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
               {siteData?.lang === 'pt' ? 'Oops! Página não encontrada' : 'Oops! Page not found'}
             </h1>
             <p className="text-gray-600">
-              {siteData?.lang === 'pt' 
+              {siteData?.lang === 'pt'
                 ? 'A página do casal que você está procurando não existe ou foi removida.'
                 : 'The couple page you are looking for does not exist or has been removed.'}
             </p>
@@ -209,7 +209,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   if (!siteData) {
     return (
       <>
-        <Seo 
+        <Seo
           title="Loading Love Counter | LovYou"
           description="Your personalized love counter is loading..."
         />
@@ -225,7 +225,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   if (!isUnlocked) {
     return (
       <>
-        <Seo 
+        <Seo
           title={`${siteData.coupleNames} - Love Counter | LovYou`}
           description="Unlock your personalized love counter"
         />
@@ -261,7 +261,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
 
   return (
     <>
-      <Seo 
+      <Seo
         title={`${siteData.coupleNames} - Love Counter | LovYou`}
         description={`${siteData.coupleNames} have been together since ${siteData.startDate}. ${siteData.message}`}
         image={imageUrls[0]} // Use a variável verificada aqui
@@ -285,7 +285,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
             <div className="absolute inset-0">
               <HeartAnimation />
             </div>
-            <button 
+            <button
               onClick={shareUrl}
               className="absolute top-4 right-4 bg-white/30 hover:bg-white/50 text-white p-2 rounded-full transition-colors duration-200"
               aria-label={siteData.lang === 'pt' ? 'Compartilhar' : 'Share'}
