@@ -3,6 +3,13 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import crypto from 'crypto';
 
+// Função de log condicional
+const devLog = (...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(...args);
+  }
+};
+
 // Inicialize o Firebase Admin se ainda não estiver inicializado
 if (!getApps().length) {
   try {
@@ -13,9 +20,9 @@ if (!getApps().length) {
         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
       }),
     });
-    console.log('Firebase inicializado com sucesso');
+    devLog('Firebase inicializado com sucesso');
   } catch (error) {
-    console.error('Erro ao inicializar Firebase:', error);
+    devLog('Erro ao inicializar Firebase:', error);
   }
 }
 
@@ -24,14 +31,14 @@ const db = getFirestore();
 export async function POST(req: Request) {
   try {
     const siteData = await req.json();
-    console.log('Dados recebidos:', siteData);
+    devLog('Dados recebidos:', siteData);
     
     if (!siteData.coupleNames) {
       return NextResponse.json({ error: 'Nome do casal não fornecido' }, { status: 400 });
     }
 
     const customUrl = generateCustomUrl(siteData.coupleNames);
-    console.log('Custom URL gerada:', customUrl);
+    devLog('Custom URL gerada:', customUrl);
     
     // Gerar uniqueHash
     const uniqueHash = crypto.randomBytes(16).toString('hex');
@@ -45,11 +52,11 @@ export async function POST(req: Request) {
       createdAt: new Date(),
       paid: false
     });
-    console.log('Site criado com sucesso. ID:', customUrl);
+    devLog('Site criado com sucesso. ID:', customUrl);
 
     return NextResponse.json({ siteId: customUrl, customUrl, uniqueHash });
   } catch (error) {
-    console.error('Erro ao criar site:', error);
+    devLog('Erro ao criar site:', error);
     return NextResponse.json({ error: 'Erro ao criar site' }, { status: 500 });
   }
 }

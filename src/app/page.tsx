@@ -14,6 +14,13 @@ import { translations, Lang } from '@/lib/translations'
 import Seo from '@/components/Seo';
 import { stripePromise } from '@/lib/stripe'
 
+// Função de log condicional
+const devLog = (...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(...args);
+  }
+};
+
 interface PreviewProps {
   coupleNames: string
   startDate: string
@@ -247,8 +254,8 @@ export default function Component() {
 
   const handleCreateSite = async () => {
     try {
-      console.log('Iniciando criação do site...');
-      console.log('Dados do formulário:', formData);
+      devLog('Iniciando criação do site...');
+      devLog('Dados do formulário:', formData);
 
       const siteResponse = await fetch('/api/create-site', {
         method: 'POST',
@@ -270,16 +277,16 @@ export default function Component() {
 
       if (!siteResponse.ok) {
         const errorData = await siteResponse.json();
-        console.error('Erro ao criar o site:', errorData);
+        devLog('Erro ao criar o site:', errorData);
         throw new Error(`Erro ao criar o site: ${JSON.stringify(errorData)}`);
       }
 
       const { siteId, customUrl } = await siteResponse.json();
-      console.log('Site criado com sucesso. ID:', siteId, 'URL:', customUrl);
+      devLog('Site criado com sucesso. ID:', siteId, 'URL:', customUrl);
 
       // Agora, vamos criar a sessão de checkout
       const priceId = getPriceId(formData.plan, lang);
-      console.log('PriceId:', priceId);
+      devLog('PriceId:', priceId);
 
       if (!priceId) {
         throw new Error('PriceId não encontrado');
@@ -295,12 +302,12 @@ export default function Component() {
 
       if (!checkoutResponse.ok) {
         const errorData = await checkoutResponse.json();
-        console.error('Erro na resposta do checkout:', errorData);
+        devLog('Erro na resposta do checkout:', errorData);
         throw new Error(`HTTP error! status: ${checkoutResponse.status}`);
       }
 
       const { sessionId } = await checkoutResponse.json();
-      console.log('SessionId recebido:', sessionId);
+      devLog('SessionId recebido:', sessionId);
 
       const stripe = await stripePromise;
       if (!stripe) {
@@ -310,11 +317,11 @@ export default function Component() {
       const { error } = await stripe.redirectToCheckout({ sessionId });
 
       if (error) {
-        console.error('Erro ao redirecionar para o checkout:', error);
+        devLog('Erro ao redirecionar para o checkout:', error);
         throw error;
       }
     } catch (error) {
-      console.error('Erro detalhado:', error);
+      devLog('Erro detalhado:', error);
       // Aqui você pode adicionar uma lógica para mostrar uma mensagem de erro para o usuário
     }
   };

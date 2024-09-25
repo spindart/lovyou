@@ -9,6 +9,13 @@ import { translations, Lang } from '@/lib/translations';
 import Seo from '@/components/Seo';
 import Image from 'next/image';
 
+// Função de log condicional
+const devLog = (...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(...args);
+  }
+};
+
 const firebaseConfig = {
   apiKey: "AIzaSyBhYEhjV23ZH4lja616E0vH2bbEu35xw8E",
   authDomain: "lovyou-4e224.firebaseapp.com",
@@ -48,15 +55,17 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   useEffect(() => {
     async function fetchSiteData() {
       if (params.customUrl) {
+        devLog('Fetching site data for:', params.customUrl);
         const docRef = doc(db, 'sites', params.customUrl);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const data = docSnap.data() as SiteData;
+          devLog('Site data fetched:', data);
           setSiteData(data);
           setIsUnlocked(data.isUnlocked || false);
         } else {
-          console.log('No such document!');
+          devLog('No such document!');
           setDataNotFound(true);
         }
       }
@@ -67,6 +76,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
 
   useEffect(() => {
     if (siteData) {
+      devLog('Setting up time together interval');
       const interval = setInterval(() => {
         const start = new Date(`${siteData.startDate}T${siteData.startTime}:00`);
         const now = new Date();
@@ -132,6 +142,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   }, [youtubeVideoId]);
 
   const toggleAudio = () => {
+    devLog('Toggling audio');
     if (youtubePlayerRef.current) {
       const player = youtubePlayerRef.current;
       if (isPlaying) {
@@ -144,6 +155,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   };
 
   const shareUrl = () => {
+    devLog('Sharing URL');
     if (navigator.share) {
       navigator.share({
         title: `${siteData?.coupleNames} - Love Counter`,
@@ -159,6 +171,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   };
 
   const capitalizeNames = (names: string) => {
+    devLog('Capitalizing names:', names);
     return names.split(' ')
       .map(name => {
         if (name.toLowerCase() === 'e' || name.toLowerCase() === 'and') return name.toLowerCase();
@@ -168,15 +181,16 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   };
 
   const handleUnlock = async () => {
-    console.log('Entered hash:', unlockHash);
-    console.log('Stored hash:', siteData?.uniqueHash);
+    devLog('Attempting to unlock site');
+    devLog('Entered hash:', unlockHash);
+    devLog('Stored hash:', siteData?.uniqueHash);
     if (siteData && unlockHash === siteData.uniqueHash) {
-      console.log('Hash matched');
+      devLog('Hash matched');
       const docRef = doc(db, 'sites', params.customUrl);
       await updateDoc(docRef, { isUnlocked: true });
       setIsUnlocked(true);
     } else {
-      console.log('Hash mismatch');
+      devLog('Hash mismatch');
       alert(t.invalidHash);
     }
   };
@@ -334,6 +348,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
 }
 
 function extractYoutubeVideoId(url: string): string | null {
+  devLog('Extracting YouTube video ID from:', url);
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
