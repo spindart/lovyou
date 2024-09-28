@@ -1,10 +1,17 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { HeartAnimation } from '@/components/HeartAnimation'
+import { HeartAnimation } from '../HeartAnimation'
 
 describe('HeartAnimation', () => {
-  it('renderiza sem erros', () => {
+  it('renderiza corretamente', () => {
     const { container } = render(<HeartAnimation />)
-    expect(container.firstChild).toBeInTheDocument()
+    expect(container.firstChild).toHaveClass('heart-animation')
+  })
+
+  it('aplica classes adicionais quando fornecidas', () => {
+    const { container } = render(<HeartAnimation className="custom-class" />)
+    const heartElement = container.firstChild as HTMLElement
+    expect(heartElement).toHaveClass('heart-animation')
+    expect(heartElement).toHaveClass('custom-class')
   })
 })

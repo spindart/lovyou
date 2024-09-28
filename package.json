@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "dev:with-tests": "npm run test && npm run dev",
+    "build": "npm run test && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^14.3.1",
+    "@testing-library/user-event": "^14.5.2",
     "@types/firebase": "^2.4.32",
     "@types/node": "^20",
     "@types/nodemailer": "^6.4.16",

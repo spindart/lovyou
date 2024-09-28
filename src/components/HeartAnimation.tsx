@@ -1,8 +1,12 @@
 import React from 'react'
 
-export const HeartAnimation: React.FC = () => {
+interface HeartAnimationProps {
+  className?: string
+}
+
+export const HeartAnimation: React.FC<HeartAnimationProps> = ({ className }) => {
   return (
-    <div className="heart-animation">
+    <div className={`heart-animation ${className || ''}`}>
       {/* Implementação da animação do coração */}
     </div>
   )
