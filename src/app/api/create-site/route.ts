@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { db } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 
 // Função de log condicional
@@ -10,28 +9,10 @@ const devLog = (...args: any[]) => {
   }
 };
 
-// Inicialize o Firebase Admin se ainda não estiver inicializado
-if (!getApps().length) {
-  try {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-    devLog('Firebase inicializado com sucesso');
-  } catch (error) {
-    devLog('Erro ao inicializar Firebase:', error);
-  }
-}
-
-const db = getFirestore();
-
 export async function POST(req: Request) {
   try {
     const siteData = await req.json();
-    devLog('Dados recebidos:', siteData);
+    console.log('Dados recebidos na API:', siteData);
     
     if (!siteData.coupleNames) {
       return NextResponse.json({ error: 'Nome do casal não fornecido' }, { status: 400 });
@@ -40,23 +21,21 @@ export async function POST(req: Request) {
     const customUrl = generateCustomUrl(siteData.coupleNames);
     devLog('Custom URL gerada:', customUrl);
     
-    // Gerar uniqueHash
     const uniqueHash = crypto.randomBytes(16).toString('hex');
     
-    // Adicionar o documento ao Firestore usando o customUrl como ID do documento
     const docRef = db.collection('sites').doc(customUrl);
     await docRef.set({
       ...siteData,
       customUrl,
       uniqueHash,
       createdAt: new Date(),
-      paid: false
+      isUnlocked: false // Adicionando o campo isUnlocked como false
     });
-    devLog('Site criado com sucesso. ID:', customUrl);
+    console.log('Site criado com sucesso. ID:', customUrl);
 
     return NextResponse.json({ siteId: customUrl, customUrl, uniqueHash });
   } catch (error) {
-    devLog('Erro ao criar site:', error);
+    console.error('Erro ao criar site:', error);
     return NextResponse.json({ error: 'Erro ao criar site' }, { status: 500 });
   }
 }

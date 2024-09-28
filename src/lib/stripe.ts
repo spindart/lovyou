@@ -6,19 +6,21 @@ let stripeInstance: Stripe | null = null;
 export const getStripe = () => {
   if (!stripeInstance) {
     const stripeSecretKey = process.env.NODE_ENV === 'production'
-      ? process.env.STRIPE_SECRET_KEY ?? ''
-      : process.env.STRIPE_TEST_SECRET_KEY ?? 'test_secret_key';
+      ? process.env.STRIPE_SECRET_KEY
+      : process.env.STRIPE_TEST_SECRET_KEY;
 
-    stripeInstance = new Stripe(stripeSecretKey, {
+    stripeInstance = new Stripe(stripeSecretKey ?? '', {
       apiVersion: '2024-06-20',
     });
   }
   return stripeInstance;
 };
 
-const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
+const stripePublishableKey = process.env.NODE_ENV === 'production'
+  ? process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  : process.env.NEXT_PUBLIC_STRIPE_TEST_PUBLISHABLE_KEY;
 
-export const stripePromise = typeof window !== 'undefined' ? loadStripe(stripePublishableKey) : null;
+export const stripePromise = typeof window !== 'undefined' ? loadStripe(stripePublishableKey ?? '') : null;
 
 export const webhookUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/confirm-payment`;
 
@@ -26,6 +28,7 @@ export const webhookUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/confirm
 
 export async function createCheckoutSession(priceId: string, siteId: string, customUrl: string, email: string) {
   try {
+    console.log('Criando sessão de checkout:', { priceId, siteId, customUrl, email });
     const response = await fetch('/api/create-checkout-session', {
       method: 'POST',
       headers: {
@@ -40,6 +43,7 @@ export async function createCheckoutSession(priceId: string, siteId: string, cus
     }
 
     const { sessionId } = await response.json();
+    console.log('Sessão de checkout criada:', sessionId);
     return sessionId;
   } catch (error) {
     console.error('Erro ao criar a sessão de checkout:', error);
