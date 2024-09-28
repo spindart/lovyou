@@ -39,7 +39,7 @@ describe('Stripe functions', () => {
 
   it('should export stripePromise', () => {
     expect(stripeModule.stripePromise).toBeDefined();
-    expect(loadStripe).toHaveBeenCalledWith(expect.any(String));
+    expect(loadStripe).toHaveBeenCalledWith('test_publishable_key');
   });
 
   it('should export webhookUrl', () => {
@@ -77,12 +77,14 @@ describe('Stripe functions', () => {
     });
 
     it('should throw an error if redirectToCheckout fails', async () => {
+      const mockRedirectToCheckout = jest.fn(() => Promise.reject(new Error('Erro ao redirecionar para o checkout')));
       (stripeModule.stripePromise as any) = Promise.resolve({
-        redirectToCheckout: jest.fn(() => Promise.reject(new Error('Erro ao redirecionar para o checkout')))
+        redirectToCheckout: mockRedirectToCheckout
       });
 
       await expect(stripeModule.redirectToCheckout('test_session_id'))
         .rejects.toThrow('Erro ao redirecionar para o checkout');
+      expect(mockRedirectToCheckout).toHaveBeenCalledWith({ sessionId: 'test_session_id' });
     });
   });
 });
