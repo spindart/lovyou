@@ -2,6 +2,7 @@ import React from 'react'
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { initializeFirebase } from '@/lib/firebase';
 
 interface CoupleFormProps {
   lang: string
@@ -11,6 +12,8 @@ interface CoupleFormProps {
 }
 
 export default function CoupleForm({ lang, formData, onFormChange, maxPhotos }: CoupleFormProps) {
+  const db = initializeFirebase();
+  
   const handleChange = (field: string, value: string) => {
     onFormChange({ ...formData, [field]: value })
   }

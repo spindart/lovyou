@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react';
-import { getFirestore, doc, getDoc, updateDoc, DocumentData } from 'firebase/firestore';
-import { initializeApp } from 'firebase/app';
+import { doc, getDoc, updateDoc, DocumentData } from 'firebase/firestore';
 import { HeartAnimation } from '../components/HeartAnimation';
 import { Music, Share2, Play, Pause } from 'lucide-react';
 import { translations, Lang } from '@/lib/translations';
 import Seo from '@/components/Seo';
 import Image from 'next/image';
+import { initializeFirebase } from '@/lib/firebase';
 
 // Função de log condicional
 const devLog = (...args: any[]) => {
@@ -16,18 +16,7 @@ const devLog = (...args: any[]) => {
   }
 };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBhYEhjV23ZH4lja616E0vH2bbEu35xw8E",
-  authDomain: "lovyou-4e224.firebaseapp.com",
-  projectId: "lovyou-4e224",
-  storageBucket: "lovyou-4e224.appspot.com",
-  messagingSenderId: "848884983824",
-  appId: "1:848884983824:web:c2fe2ba268d3f818f24295",
-  measurementId: "G-2XXYHREDY4"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = initializeFirebase();
 
 interface SiteData extends DocumentData {
   coupleNames: string;
@@ -203,6 +192,9 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
         <Seo
           title="Page Not Found | LovYou"
           description="The couple page you are looking for does not exist or has been removed."
+          coupleNames="Not Found"
+          startDate={new Date().toISOString()}
+          path={`/${params.customUrl}`}
         />
         <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center">
           <div className="bg-white p-8 rounded-xl">
@@ -226,6 +218,9 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
         <Seo
           title="Loading Love Counter | LovYou"
           description="Your personalized love counter is loading..."
+          coupleNames="Loading"
+          startDate={new Date().toISOString()}
+          path={`/${params.customUrl}`}
         />
         <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center">
           <div className="text-2xl font-bold text-pink-600">
@@ -242,6 +237,9 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
         <Seo
           title={`${siteData.coupleNames} - Love Counter | LovYou`}
           description="Unlock your personalized love counter"
+          coupleNames={siteData.coupleNames}
+          startDate={siteData.startDate}
+          path={`/${params.customUrl}`}
         />
         <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 flex items-center justify-center p-4">
           <div className="bg-white p-8 rounded-xl max-w-md w-full">
@@ -278,7 +276,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
       <Seo
         title={`${siteData.coupleNames} - Love Counter | LovYou`}
         description={`${siteData.coupleNames} have been together since ${siteData.startDate}. ${siteData.message}`}
-        image={imageUrls[0]} // Use a variável verificada aqui
+        image={imageUrls[0]} // Agora esta propriedade é aceita
         coupleNames={siteData.coupleNames}
         startDate={siteData.startDate}
         path={`/${params.customUrl}`}

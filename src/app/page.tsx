@@ -12,7 +12,7 @@ import { useDropzone } from 'react-dropzone'
 import CoupleForm from './components/CoupleForm'
 import { translations, Lang } from '@/lib/translations'
 import Seo from '@/components/Seo';
-import { stripePromise } from '@/lib/stripe'
+import { createCheckoutSession, redirectToCheckout } from '@/lib/stripe'
 
 // Função de log condicional
 const devLog = (...args: any[]) => {
@@ -269,7 +269,6 @@ export default function Component() {
           message: formData.message,
           imageUrls: formData.imageUrls,
           youtubeUrl: formData.youtubeUrl,
-          email: formData.email,
           plan: formData.plan,
           language: lang
         }),
@@ -281,10 +280,16 @@ export default function Component() {
         throw new Error(`Erro ao criar o site: ${JSON.stringify(errorData)}`);
       }
 
-      const { siteId, customUrl } = await siteResponse.json();
+      const siteData = await siteResponse.json();
+      devLog('Resposta da criação do site:', siteData);
+
+      const { id: siteId, customUrl } = siteData;
+      if (!siteId || !customUrl) {
+        throw new Error('Dados do site incompletos na resposta');
+      }
+
       devLog('Site criado com sucesso. ID:', siteId, 'URL:', customUrl);
 
-      // Agora, vamos criar a sessão de checkout
       const priceId = getPriceId(formData.plan, lang);
       devLog('PriceId:', priceId);
 
@@ -292,37 +297,23 @@ export default function Component() {
         throw new Error('PriceId não encontrado');
       }
 
-      const checkoutResponse = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ priceId, siteId, customUrl, email: formData.email }),
-      });
-
-      if (!checkoutResponse.ok) {
-        const errorData = await checkoutResponse.json();
-        devLog('Erro na resposta do checkout:', errorData);
-        throw new Error(`HTTP error! status: ${checkoutResponse.status}`);
-      }
-
-      const { sessionId } = await checkoutResponse.json();
+      devLog('Criando sessão de checkout com:', { priceId, customUrl, siteId });
+      const sessionId = await createCheckoutSession(priceId, siteId, customUrl, formData.email);
       devLog('SessionId recebido:', sessionId);
 
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe não inicializado');
+      if (!sessionId) {
+        throw new Error('SessionId não recebido do backend');
       }
 
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-
-      if (error) {
-        devLog('Erro ao redirecionar para o checkout:', error);
-        throw error;
-      }
+      devLog('Redirecionando para o checkout...');
+      await redirectToCheckout(sessionId);
     } catch (error) {
       devLog('Erro detalhado:', error);
-      // Aqui você pode adicionar uma lógica para mostrar uma mensagem de erro para o usuário
+      if (error instanceof Error) {
+        alert(`Erro ao criar o site ou redirecionar para o checkout: ${error.message}`);
+      } else {
+        alert('Ocorreu um erro desconhecido ao criar o site ou redirecionar para o checkout');
+      }
     }
   };
 
@@ -343,9 +334,10 @@ export default function Component() {
 
   return (
     <>
-      <Seo 
-        title="Create Your Love Counter | LovYou"
-        description="Create a dynamic relationship time counter. Fill out the form and receive your personalized website + QR Code to share with your love."
+      <Seo
+        title="LovYou - Celebrate Your Love"
+        description="Create your personalized love counter and celebrate your relationship."
+        path="/"  // Adicione esta linha
       />
       <div className="min-h-screen bg-gradient-to-br from-pink-100 to-purple-200 p-4 flex flex-col">
         <div className="container mx-auto max-w-7xl flex-grow flex flex-col">

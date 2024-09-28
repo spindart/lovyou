@@ -7,12 +7,11 @@ let headTags: React.ReactElement[] = []
 jest.mock('next/head', () => {
   return {
     __esModule: true,
-    default: ({ children }: { children: React.ReactNode }) => {
-      headTags = React.Children.toArray(children) as React.ReactElement[]
-      return null
+    default: ({ children }: { children: Array<React.ReactElement> }) => {
+      return <>{children}</>;
     },
-  }
-})
+  };
+});
 
 describe('Seo', () => {
   beforeEach(() => {
@@ -38,13 +37,14 @@ describe('Seo', () => {
   })
 
   it('inclui tags Twitter Card', () => {
-    render(<Seo title="Twitter Test" description="Twitter Description" />)
+    const { container } = render(<Seo title="Twitter Test" description="Twitter Description" />);
 
-    const twitterTitle = headTags.find(tag => tag.props.name === 'twitter:title')
-    const twitterDescription = headTags.find(tag => tag.props.name === 'twitter:description')
-    expect(twitterTitle).toBeTruthy()
-    expect(twitterDescription).toBeTruthy()
-    expect(twitterTitle?.props.content).toBe('Twitter Test')
-    expect(twitterDescription?.props.content).toBe('Twitter Description')
+    const twitterTitle = container.querySelector('meta[name="twitter:title"]');
+    const twitterDescription = container.querySelector('meta[name="twitter:description"]');
+    
+    expect(twitterTitle).toBeTruthy();
+    expect(twitterDescription).toBeTruthy();
+    expect(twitterTitle?.getAttribute('content')).toBe('Twitter Test');
+    expect(twitterDescription?.getAttribute('content')).toBe('Twitter Description');
   })
 })

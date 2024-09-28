@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { getFirestore, doc, updateDoc } from 'firebase/firestore'
 import { initializeApp } from 'firebase/app'
 import { CheckCircleIcon, HeartIcon } from '@heroicons/react/24/solid'
+import Seo from '@/components/Seo';
 
 // Função de log condicional
 const devLog = (...args: any[]) => {

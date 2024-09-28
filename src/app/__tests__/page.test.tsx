@@ -50,3 +50,5 @@ describe('Home Page', () => {
 
   // Removido o teste que estava falhando
 })
+
+// Adicione mais testes para cobrir diferentes estados e interações
