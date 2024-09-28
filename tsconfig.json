@@ -2,7 +2,7 @@
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
-    "types": ["firebase"],
+    "types": ["jest", "node", "firebase", "@testing-library/jest-dom"],
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "skipLibCheck": true,
     "strict": true,
