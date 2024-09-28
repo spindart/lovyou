@@ -9,7 +9,11 @@ export const getStripe = () => {
       ? process.env.STRIPE_SECRET_KEY
       : process.env.STRIPE_TEST_SECRET_KEY;
 
-    stripeInstance = new Stripe(stripeSecretKey ?? '', {
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key is not defined');
+    }
+
+    stripeInstance = new Stripe(stripeSecretKey, {
       apiVersion: '2024-06-20',
     });
   }
