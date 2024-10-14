@@ -9,7 +9,6 @@ import Seo from '@/components/Seo';
 import Image from 'next/image';
 import { initializeFirebase } from '@/lib/firebase';
 
-// Função de log condicional
 const devLog = (...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(...args);
@@ -268,7 +267,6 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
     );
   }
 
-  // Adicione esta verificação
   const imageUrls = siteData.imageUrls || [];
 
   return (

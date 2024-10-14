@@ -4,7 +4,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 
 const db = getFirestore();
 
-// Função de log condicional
 const devLog = (...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(...args);

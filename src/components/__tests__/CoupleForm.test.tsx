@@ -22,5 +22,4 @@ describe('CoupleForm', () => {
     expect(() => render(<CoupleForm {...mockProps} />)).not.toThrow()
   })
 
-  // Outros testes que estão passando podem ser mantidos aqui
 })

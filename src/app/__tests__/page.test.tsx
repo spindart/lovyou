@@ -48,7 +48,4 @@ describe('Home Page', () => {
     expect(screen.getByText('🇺🇸 English')).toBeInTheDocument()
   })
 
-  // Removido o teste que estava falhando
 })
-
-// Adicione mais testes para cobrir diferentes estados e interações

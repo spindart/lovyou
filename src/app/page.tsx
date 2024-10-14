@@ -14,7 +14,6 @@ import { translations, Lang } from '@/lib/translations'
 import Seo from '@/components/Seo';
 import { stripePromise } from '@/lib/stripe'
 
-// Função de log condicional
 const devLog = (...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(...args);
@@ -325,7 +324,6 @@ export default function Component() {
       }
     } catch (error) {
       devLog('Erro detalhado:', error);
-      // Aqui você pode adicionar uma lógica para mostrar uma mensagem de erro para o usuário
       alert('Ocorreu um erro ao criar o site ou redirecionar para o checkout. Por favor, tente novamente.');
     }
   };
