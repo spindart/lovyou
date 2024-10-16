@@ -9,6 +9,7 @@ import Seo from '@/components/Seo';
 import Image from 'next/image';
 import { initializeFirebase } from '@/lib/firebase';
 import { devLog } from '@/utils/logging';
+import { generateQRCode } from '@/utils/qrCode';
 
 const db = initializeFirebase();
 
@@ -34,6 +35,7 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
   const youtubePlayerRef = useRef<HTMLIFrameElement>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [unlockHash, setUnlockHash] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchSiteData() {
@@ -123,6 +125,17 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
       });
     }
   }, [youtubeVideoId]);
+
+  useEffect(() => {
+    async function fetchQRCode() {
+      if (params.customUrl) {
+        const qrCode = await generateQRCode(params.customUrl);
+        setQrCodeUrl(qrCode);
+      }
+    }
+
+    fetchQRCode();
+  }, [params.customUrl]);
 
   const toggleAudio = () => {
     devLog('Toggling audio');
@@ -320,6 +333,20 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
                 >
                   {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                 </button>
+              </div>
+            )}
+            {qrCodeUrl && (
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold text-pink-600 mb-2">
+                  {t.scanQRCode}
+                </h2>
+                <Image
+                  src={qrCodeUrl}
+                  alt="QR Code"
+                  width={200}
+                  height={200}
+                  className="mx-auto"
+                />
               </div>
             )}
           </div>
