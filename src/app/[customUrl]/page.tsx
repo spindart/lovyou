@@ -335,20 +335,6 @@ export default function CouplePage({ params }: { params: { customUrl: string } }
                 </button>
               </div>
             )}
-            {qrCodeUrl && (
-              <div className="mt-6">
-                <h2 className="text-xl font-semibold text-pink-600 mb-2">
-                  {t.scanQRCode}
-                </h2>
-                <Image
-                  src={qrCodeUrl}
-                  alt="QR Code"
-                  width={200}
-                  height={200}
-                  className="mx-auto"
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
