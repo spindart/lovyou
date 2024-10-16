@@ -13,12 +13,7 @@ import CoupleForm from './components/CoupleForm'
 import { translations, Lang } from '@/lib/translations'
 import Seo from '@/components/Seo';
 import { stripePromise } from '@/lib/stripe'
-
-const devLog = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args);
-  }
-};
+import { devLog } from '@/utils/logging';
 
 interface PreviewProps {
   coupleNames: string

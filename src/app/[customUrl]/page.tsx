@@ -8,12 +8,7 @@ import { translations, Lang } from '@/lib/translations';
 import Seo from '@/components/Seo';
 import Image from 'next/image';
 import { initializeFirebase } from '@/lib/firebase';
-
-const devLog = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args);
-  }
-};
+import { devLog } from '@/utils/logging';
 
 const db = initializeFirebase();
 

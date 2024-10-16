@@ -6,12 +6,8 @@ import { getFirestore, doc, updateDoc } from 'firebase/firestore'
 import { initializeApp } from 'firebase/app'
 import { CheckCircleIcon, HeartIcon } from '@heroicons/react/24/solid'
 import Seo from '@/components/Seo';
+import { devLog } from '@/utils/logging';
 
-const devLog = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args);
-  }
-};
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -67,7 +63,7 @@ export default function SuccessPage() {
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-r from-pink-500 to-purple-500">
         <div className="text-center">
           <HeartIcon className="mx-auto h-16 w-16 text-white animate-pulse" />
-          <h2 className="mt-4 text-2xl font-semibold text-white">Desbloqueando seu site de amor...</h2>
+          <h2 className="mt-4 text-2xl font-semibold text-white">Desbloqueando seu contador de amor...</h2>
         </div>
       </div>
     )

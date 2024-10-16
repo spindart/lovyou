@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { getFirestore } from 'firebase-admin/firestore';
+import { devLog } from '@/utils/logging';
 
 const db = getFirestore();
 
-const devLog = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args);
-  }
-};
+
 
 export async function POST(req: Request) {
   try {

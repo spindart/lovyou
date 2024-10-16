@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { getFirestore } from 'firebase-admin/firestore';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import nodemailer from 'nodemailer';
+import { devLog } from '@/utils/logging';
 
 const stripeSecretKey = process.env.NODE_ENV === 'production'
     ? process.env.STRIPE_SECRET_KEY
@@ -42,11 +43,6 @@ async function sendEmail(to: string, subject: string, text: string) {
         text: text,
     });
 
-    const devLog = (...args: any[]) => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log(...args);
-        }
-    };
 
     devLog("Message sent: %s", info.messageId);
     devLog("Preview URL: %s", nodemailer.getTestMessageUrl(info));
